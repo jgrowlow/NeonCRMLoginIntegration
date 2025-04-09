@@ -10,40 +10,46 @@ app.initializers.add('neoncrm-login', () => {
         });
 
     document.getElementById('neoncrm-login')?.addEventListener('click', () => {
-        // Get the user's email (you'll need to implement getUserEmail() based on your NeonCRM API or other methods)
-        const userEmail = getUserEmail();  // Replace with actual method to get the user's email
+        const userEmail = getUserEmail();  // You still need to define this
 
-        // Make an initial GET request to retrieve the CSRF token
+        if (!userEmail) {
+            console.error('No email provided.');
+            return;
+        }
+
         fetch(app.forum.attribute('apiUrl') + '/csrf-token', {
             method: 'GET',
             credentials: 'include'
         })
         .then(response => response.json())
         .then(data => {
-            const csrfToken = data.csrfToken; // Retrieve CSRF token from response
+            const csrfToken = data.csrfToken;
 
-            // Make the POST request with the CSRF token and email
-            fetch(app.forum.attribute('apiUrl') + '/neoncrm/login', {
+            return fetch(app.forum.attribute('apiUrl') + '/neoncrm/login', {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken // Include CSRF token in the headers
+                    'X-CSRF-Token': csrfToken
                 },
-                body: JSON.stringify({ email: userEmail }) // Send the email instead of userId
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Redirect to Flarum dashboard if login is successful
-                    window.location.href = '/forum/dashboard';
-                } else {
-                    // Redirect to the join page if login fails
-                    window.location.href = 'https://www.hopecommunitycenter.org/join';
-                }
-            })
-            .catch(error => console.error('Login failed:', error));
+                body: JSON.stringify({ email: userEmail })
+            });
         })
-        .catch(error => console.error('Failed to retrieve CSRF token:', error));
+        .then(response => response.json())
+        .then(data => {
+            if (data.token) {
+                // Log in with token
+                app.session.loginWithToken(data.token);
+                // Optional: Redirect after short delay or immediately
+                window.location.href = data.redirect || app.forum.attribute('baseUrl');
+            } else {
+                console.error('Token not received:', data);
+                window.location.href = 'https://www.hopecommunitycenter.org/join';
+            }
+        })
+        .catch(error => {
+            console.error('Login process failed:', error);
+            window.location.href = 'https://www.hopecommunitycenter.org/join';
+        });
     });
 });
