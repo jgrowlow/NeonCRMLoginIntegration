@@ -1,7 +1,7 @@
 <?php
 namespace CustomApi\Controllers;
 
-use CustomApi\Auth\UserAuthenticator; // Add the UserAuthenticator import
+use CustomApi\Auth\UserAuthenticator;
 use Flarum\User\User;
 use Flarum\Http\RequestUtil;
 use Illuminate\Support\Arr;
@@ -11,6 +11,7 @@ use Laminas\Diactoros\Response\RedirectResponse;
 use CustomApi\Services\NeonCRMService;
 use Flarum\Http\Middleware\CheckCsrfToken;
 use Psr\Log\LoggerInterface;
+use Illuminate\Validation\ValidationException;
 
 class LoginController
 {
@@ -38,15 +39,15 @@ class LoginController
 
         try {
             $body = $request->getParsedBody();
-            $accountId = Arr::get($body, 'accountId');
-            $this->logger->info('Account ID: ' . $accountId);
+            $email = Arr::get($body, 'email');
+            $this->logger->info('Email: ' . $email);
 
-            if (!$accountId) {
-                throw new ValidationException(['error' => 'Account ID is required']);
+            if (!$email) {
+                throw new ValidationException(['error' => 'Email is required']);
             }
 
-            // Use the UserAuthenticator to match the accountId
-            $user = $this->authenticator->authenticate($accountId);
+            // Use the UserAuthenticator to match the email
+            $user = $this->authenticator->authenticate($email);
 
             if (!$user) {
                 return new JsonResponse(['error' => 'User not found in forum'], 404);
